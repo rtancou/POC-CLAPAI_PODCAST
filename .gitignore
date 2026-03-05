@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+*.mp3
+lo_que_iba_a_grabar.txt
