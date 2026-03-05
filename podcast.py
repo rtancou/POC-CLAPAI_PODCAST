@@ -226,71 +226,7 @@ def agente_3_productor(state: PodcastState) -> dict:
             print(f"Error al conectar con OpenAI: {e}")
             filepath = ""
 
-    # Si hay efectos en los metadatos, intentar mezclarlos (opcional).
-    # Por defecto la mezcla está DESACTIVADA para mantener el flujo simple.
-    # Para habilitarla, establece la variable de entorno USE_EFFECTS=1
-    # o añade "use_effects": true en tu script.json.
-    meta = state.get("meta", {}) or {}
-    effects = meta.get("effects") or []
-    use_effects_flag = os.environ.get("USE_EFFECTS", "0") == "1" or bool(meta.get("use_effects"))
-
-    final_path = filepath
-    if use_effects_flag and effects and filepath and filepath.endswith(('.mp3', '.wav')):
-        try:
-            from pydub import AudioSegment
-        except Exception:
-            print("Nota: 'pydub' no está instalado; omitiendo mezcla de efectos. Instala con: pip install pydub")
-            effects = []
-
-    if effects:
-        try:
-            base = AudioSegment.from_file(filepath)
-            for eff in effects:
-                # soportar entrada simple de cadena o dict con propiedades
-                if isinstance(eff, str):
-                    eff_file = eff
-                    eff_meta = {}
-                else:
-                    eff_file = eff.get('file')
-                    eff_meta = eff
-
-                if not eff_file:
-                    print(f"Efecto ignorado (sin 'file'): {eff}")
-                    continue
-
-                if not os.path.exists(eff_file):
-                    print(f"Efecto no encontrado, se omite: {eff_file}")
-                    continue
-
-                seg = AudioSegment.from_file(eff_file)
-
-                # volumen en dB (opcional)
-                vol = eff_meta.get('volume')
-                if isinstance(vol, (int, float)):
-                    seg = seg + float(vol)
-
-                # fades (segundos)
-                fi = eff_meta.get('fade_in', 0) or 0
-                fo = eff_meta.get('fade_out', 0) or 0
-                if fi:
-                    seg = seg.fade_in(int(fi * 1000))
-                if fo:
-                    seg = seg.fade_out(int(fo * 1000))
-
-                start = eff_meta.get('start', 0) or 0
-                pos_ms = int(float(start) * 1000)
-
-                base = base.overlay(seg, position=pos_ms)
-
-            # Guardar mezclado
-            mixed_path = os.environ.get('OUTPUT_FILE', filepath)
-            base.export(mixed_path, format=os.path.splitext(mixed_path)[1].lstrip('.'))
-            final_path = mixed_path
-            print(f"Mezcla de efectos completada: {final_path}")
-        except Exception as mix_err:
-            print(f"Error al mezclar efectos: {mix_err}")
-
-    return {"mp3_filepath": final_path}
+    return {"mp3_filepath": filepath}
 
 def agente_4_revisor(state: PodcastState) -> dict:
     """Agente 4: Verifica que el archivo exista y aprueba el pase a producción."""
@@ -354,45 +290,10 @@ if __name__ == "__main__":
         print(f"Advertencia: {script_path} no existe. Usando guion embebido por defecto.")
 
     if not mi_guion:
-        mi_guion = """
-    Título del episodio: Cómo Encontrar e Impulsar los Mejores Casos de Uso de IA en tu Organización
-
-    Objetivo: Aprenderá a identificar y priorizar las oportunidades más valiosas para aplicar la inteligencia artificial en su negocio, desde tareas individuales hasta flujos de trabajo completos.
-
-    Duración estimada: 2 a 3 minutos
-
-    Guion completo:
-
-    LOCUTOR: Hola a todos y bienvenidos a este nuevo episodio de nuestro podcast sobre estrategias de transformación digital. En esta ocasión, vamos a sumergirnos en un tema clave: cómo encontrar e impulsar los mejores casos de uso de inteligencia artificial en su organización.
-
-    La IA se está adoptando cada vez más rápido que tecnologías anteriores como internet, y los líderes en IA están viendo incrementos significativos en su desempeño. Sin embargo, la mayoría de las empresas aún luchan por alcanzar la madurez en el uso de esta poderosa tecnología. ¿Cómo pueden ustedes aprovechar mejor el potencial de la IA?
-
-    (SECCIÓN 1: Entender dónde aporta valor la IA)
-
-    LOCUTOR: El primer paso es identificar aquellas áreas de su negocio que pueden beneficiarse de forma inmediata de la inteligencia artificial. Según nuestro análisis de más de 600 casos de uso, la mayoría se pueden clasificar en seis "primitivas" fundamentales: creación de contenido, automatización, investigación, codificación, análisis de datos e ideación/estrategia.
-
-    Estas primitivas representan cientos de aplicaciones que hemos visto en diversas industrias y departamentos. Por ejemplo, en creación de contenido, la IA puede ayudar a editar y pulir borradores, generar primeros esbozos de documentos o incluso crear imágenes y visualizaciones. En análisis de datos, puede extraer insights clave de fuentes de información no estructurada. Estas son solo algunas de las maneras en que la IA puede transformar el trabajo de sus equipos.
-
-    (SECCIÓN 2: Priorizar oportunidades de alto impacto)
-
-    LOCUTOR: Una vez que sus equipos entiendan estas primitivas de uso de IA, el siguiente paso es recopilar y priorizar las oportunidades más prometedoras. Les recomendamos usar una matriz de impacto-esfuerzo para evaluar cada caso de uso potencial.
-
-    Por ejemplo, automatizar la localización y optimización de contenido para múltiples canales podría ser un caso de alto impacto y bajo esfuerzo, y por lo tanto, una excelente oportunidad para empezar. En cambio, construir un asistente de IA a la medida para generar formularios web, si bien es un proyecto interesante, probablemente tenga un impacto más limitado y exija más esfuerzo.
-
-    Al enfocarse primero en las oportunidades de alto impacto y bajo esfuerzo, podrán obtener beneficios rápidos que generen más interés e inversión en la IA.
-
-    (SECCIÓN 3: Integrar la IA en flujos de trabajo completos)
-
-    LOCUTOR: Pero no se queden solo en tareas aisladas. Nuestros clientes más avanzados están empezando a integrar la IA de principio a fin en sus procesos. Por ejemplo, en un flujo de trabajo de marketing, la IA podría ayudar desde la investigación de tendencias del mercado, hasta el análisis de datos, la generación de estrategias, la creación de contenido y la optimización de la distribución.
-
-    Pensar en la IA como algo que pueden incorporar a lo largo de todo un proceso, en lugar de solo en pasos individuales, les permitirá aprovechar su poder transformador. A medida que sus equipos se familiaricen más con estas tecnologías, irán descubriendo más oportunidades de rediseñar sus flujos de trabajo.
-
-    (SECCIÓN FINAL: Despedida)
-
-    LOCUTOR: En resumen, para empezar a aprovechar el potencial de la IA en su organización, es clave que identifiquen las áreas que pueden beneficiarse de inmediato, enseñen a sus equipos las primitivas fundamentales de uso, y prioricen las oportunidades de mayor impacto. Y no se queden solo en tareas aisladas, sino que busquen integrar la IA a lo largo de sus procesos clave.
-
-    Recuerden que el camino hacia la adopción y el escalamiento de la IA requiere un cambio de mentalidad, pero con los pasos adecuados, podrán liberar el verdadero poder transformador de esta tecnología. ¡Éxito en su viaje de IA!
-    """
+        raise ValueError(
+            "No se encontró contenido narrable en script.json. "
+            "Define el campo 'script_text' con el guion a narrar."
+        )
     
     initial_state = {
         "guion_crudo": mi_guion,
